@@ -1,7 +1,15 @@
 // angular
-import { AfterViewInit , Component, ElementRef, ViewChild, OnInit } from '@angular/core';
-// jointjs/plus
-import { dia, ui, shapes } from '@joint/plus';
+import { Component, ElementRef, OnInit } from '@angular/core';
+// custom service
+import { StencilService } from '../services/stencil-service';
+import { ToolbarService } from '../services/toolbar-service';
+import { InspectorService } from '../services/inspector-service';
+import { HaloService } from '../services/halo-service';
+import { KeyboardService } from '../services/keyboard-service';
+import RappidService from '../services/main-service'
+//
+import { ThemePicker } from '../components/theme-picker';
+import { sampleGraphs } from '../config/sample-graphs';
 
 @Component({
   selector: 'app-root',
@@ -9,94 +17,30 @@ import { dia, ui, shapes } from '@joint/plus';
   standalone: true,
   styleUrl: './app.component.css'
 })
-export class AppComponent implements OnInit, AfterViewInit  {
+export class AppComponent implements OnInit {
 
-  @ViewChild('canvas') canvas: ElementRef;
+  private rappid: RappidService;
 
-  private graph: dia.Graph;
-  private paper: dia.Paper;
-  private scroller: ui.PaperScroller;
+  constructor(private element: ElementRef){}
 
   public ngOnInit(): void {
 
-    const graph = this.graph = new dia.Graph({}, { cellNamespace: shapes });
+    this.rappid = new RappidService(
+      this.element.nativeElement,
+      new StencilService(),
+      new ToolbarService(),
+      new InspectorService(),
+      new HaloService(),
+      new KeyboardService()
+    );
 
-    const paper = this.paper = new dia.Paper({
-        model: graph,
-        width: 1000,
-        height: 1000,
-        background: {
-            color: '#F8F9FA',
-        },
-        frozen: true,
-        async: true,
-        sorting: dia.Paper.sorting.APPROX,
-        cellViewNamespace: shapes
-    });
+    this.rappid.startRappid();
 
-    const scroller = this.scroller = new ui.PaperScroller({
-        paper,
-        autoResizePaper: true,
-        cursor: 'grab'
-    });
+    const themePicker = new ThemePicker({ mainView: this.rappid });
+    document.body.appendChild(themePicker.render().el);
 
-    scroller.render();
-
-    const rect = new shapes.standard.Rectangle({
-        position: { x: 25, y: 25 },
-        size: { width: 50, height: 100 },
-        attrs: {
-            label: {
-                text: 'Hello Rectangle 1'
-            }
-        }
-    });
-
-    this.graph.addCell(rect);
-
-    const rect2 = new shapes.standard.Rectangle({
-      position: { x: 275, y: 175},
-      size: {width: 50, height: 100},
-      attrs: {
-        label: {
-          text: "Hello Rectangle 2"
-        }
-      }
-    });
-
-    this.graph.addCell(rect2);
-
-    const rect3 = new shapes.standard.Rectangle();
-    rect3.position(800, 900);
-    rect3.resize(180, 50);
-    rect3.attr('label', { text: 'Hello Rectangle 3' });
-    rect3.addTo(graph);
-
-
-    const link = new shapes.standard.Link();
-    link.source(rect);
-    link.target(rect2);
-    link.appendLabel({
-      attrs: {
-          text: {
-              text: 'to the'
-          }
-      }
-    });
-    link.router('orthogonal');
-    link.connector('straight', {  cornerType: 'line' });
-    
-    link.addTo(graph);
-
-  }
-
-  public ngAfterViewInit(): void {
-
-    const { scroller, paper, canvas } = this;
-    canvas.nativeElement.appendChild(this.scroller.el);
-    scroller.center();
-    paper.unfreeze();
-
+    // restore
+    this.rappid.graph.fromJSON(JSON.parse(sampleGraphs.emergencyProcedure));
   }
 
   /* 
@@ -134,6 +78,5 @@ export class AppComponent implements OnInit, AfterViewInit  {
         Import graph
 
   */
-
 
 }
