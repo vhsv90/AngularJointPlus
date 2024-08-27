@@ -8,6 +8,9 @@
       "jasmine"
     ]
   },
+  "files": [
+    "node_modules/@joint/plus/index.ts",
+  ],
   "include": [
     "src/**/*.spec.ts",
     "src/**/*.d.ts"
