@@ -13,10 +13,65 @@ export class AppComponent implements OnInit {
 
   public ngOnInit(): void {
 
+    //#region foreign-object-configuration
+
+    const Form = dia.Element.define('example.Form', {
+      attrs: {
+          foreignObject: {
+              width: 'calc(w)',
+              height: 'calc(h)'
+          }
+      }
+    }, {
+      markup: util.svg/* xml */`
+        <foreignObject @selector="foreignObject">
+            <div
+                xmlns="http://www.w3.org/1999/xhtml"
+                class="outer"
+            >
+                <div class="inner">
+                    <form class="form">
+                        <input @selector="name" type="text" name="name" autocomplete="off" placeholder="Your diagram name"/>
+                        <button>
+                            <span>Submit</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </foreignObject>
+        `
+      });
+
+    const FormView = dia.ElementView.extend({
+      events: {
+          'submit form': 'onSubmit',
+          'change input': 'onChange'
+      },
+  
+      onSubmit: function (evt: any) {
+          evt.preventDefault();
+          alert('onSubmit action')
+          this.model.attr('name/props/value', '');
+      },
+  
+      onChange: function (evt: any) {
+          this.model.attr('name/props/value', evt.target.value);
+      }
+    });
+
+    const namespace = {
+      ...shapes,
+      example: {
+          Form,
+          FormView
+      }
+    }
+    
+    //#endregion
 
     //#region main-properties
     const graph = new dia.Graph({}, { cellNamespace: shapes });
-    const namespace = shapes;
+    //const namespace = shapes;
     
     const paper = new dia.Paper({
       el: document.getElementById('paper'),
@@ -191,6 +246,7 @@ export class AppComponent implements OnInit {
 
     //#endregion 
 
+    //#region inspector-configuration
     function openInspector(cell: any) {
       closeInspector(); // close inspector if currently open
   
@@ -263,7 +319,21 @@ export class AppComponent implements OnInit {
         closeInspector(); // close inspector if currently open
     });
 
-    openInspector(rect1);     //openInspector(rect2);
+    //#endregion
+
+    // testing inspector with rect1
+    //openInspector(rect2);
+    openInspector(rect1);     
+
+    //#region adding-foreign-object-to-graph
+    const form = new Form();
+    form.position(300, 400);
+    form.resize(355, 200);
+    form.addTo(graph);
+    //paper.freeze();
+    //#endregion
+
+
 
   }
 
