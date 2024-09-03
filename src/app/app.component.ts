@@ -13,6 +13,8 @@ export class AppComponent implements OnInit {
 
   public ngOnInit(): void {
 
+
+    //#region main-properties
     const graph = new dia.Graph({}, { cellNamespace: shapes });
     const namespace = shapes;
     
@@ -29,8 +31,12 @@ export class AppComponent implements OnInit {
     //   paper: paper,
     //   scrollWhileDragging: true,
     // });
-    // paperScroller.render();  
+    // paperScroller.render();
+    
+    //#endregion
 
+
+    //#region rectangle-creation
     const rect1 = new shapes.standard.Rectangle();
     rect1.position(25, 25);
     rect1.resize(180, 50);
@@ -46,8 +52,11 @@ export class AppComponent implements OnInit {
     rect2.attr('label', { text: 'World!', fill: '#353535' });
 
     rect1.addTo(graph);
-    rect2.addTo(graph);
+    rect2.addTo(graph);  
 
+    //#endregion
+
+    //#region adding-links-to-objects
     const link = new shapes.standard.Link();
     link.source(rect1);
     link.target(rect2);
@@ -62,6 +71,10 @@ export class AppComponent implements OnInit {
     link.connector('straight', {  cornerType: 'line' });
     link.addTo(graph);
 
+    //#endregion
+
+
+    //#region stencil-configuration
     const stencil = new ui.Stencil({
       paper: paper,
       el: document.getElementById('stencil'),
@@ -121,7 +134,9 @@ export class AppComponent implements OnInit {
   
     stencil.load(elements);
 
-    // create halo
+    //#endregion
+
+    //#region halo-configuration 
     function openHalo(cellView: any) {
       new ui.Halo({ cellView: cellView }).render();
     }
@@ -129,10 +144,12 @@ export class AppComponent implements OnInit {
     paper.on('cell:pointerup', (cellView) => {
       openHalo(cellView);
     });
+    
+    openHalo(paper.findViewByModel(rect2)); //openHalo(paper.findViewByModel(rect1));
+    
+    //#endregion
 
-    openHalo(paper.findViewByModel(rect1));
-
-    // create toolbar
+    //#region toolbar-configuration
     const toolbar = new ui.Toolbar({
       el: document.getElementById('toolbar'),
       tools: [
@@ -153,7 +170,7 @@ export class AppComponent implements OnInit {
 
     toolbar.on('json:pointerclick', () => {
       const str = JSON.stringify(graph.toJSON());
-      console.log('json:pointerclick json-result: ', str)
+      console.log('export-to-json-result: ', str)
       const bytes = new TextEncoder().encode(str);
       const blob = new Blob([bytes], { type: 'application/json;charset=utf-8' });
       util.downloadBlob(blob, 'joint-plus.json');
@@ -172,6 +189,8 @@ export class AppComponent implements OnInit {
         );
     });
 
+    //#endregion 
+
     function openInspector(cell: any) {
       closeInspector(); // close inspector if currently open
   
@@ -179,73 +198,72 @@ export class AppComponent implements OnInit {
           cell: cell,
           inputs: getInspectorConfig(cell)
       });
-  }
+    }
   
-  function closeInspector() {
-      ui.Inspector.close();
-  }
+    function closeInspector() {
+        ui.Inspector.close();
+    }
   
-  function getInspectorConfig(cell: any) {
-      if (cell.isElement()) {
-          return {
-              attrs: {
-                  label: {
-                      text: {
-                          type: 'content-editable',
-                          label: 'Label'
-                      }
-                  }
-              }
-          };
+    function getInspectorConfig(cell: any) {
+        if (cell.isElement()) {
+            return {
+                attrs: {
+                    label: {
+                        text: {
+                            type: 'content-editable',
+                            label: 'Label'
+                        }
+                    }
+                }
+            };
+    
+        } else { // cell.isLink()
+            return {
+                labels: {
+                    type: 'list',
+                    label: 'Labels',
+                    item: {
+                        type: 'object',
+                        properties: {
+                            attrs: {
+                                text: {
+                                    text: {
+                                        type: 'content-editable',
+                                        label: 'Text',
+                                        defaultValue: 'label'
+                                    }
+                                },
+                            },
+                            position: {
+                                type: 'select-box',
+                                options: [
+                                    { value: 30, content: 'Source' },
+                                    { value: 0.5, content: 'Middle' },
+                                    { value: -30, content: 'Target' }
+                                ],
+                                defaultValue: 0.5,
+                                label: 'Position'
+                            }
+                        }
+                    }
+                }
+            };
+        }
+    }
   
-      } else { // cell.isLink()
-          return {
-              labels: {
-                  type: 'list',
-                  label: 'Labels',
-                  item: {
-                      type: 'object',
-                      properties: {
-                          attrs: {
-                              text: {
-                                  text: {
-                                      type: 'content-editable',
-                                      label: 'Text',
-                                      defaultValue: 'label'
-                                  }
-                              },
-                          },
-                          position: {
-                              type: 'select-box',
-                              options: [
-                                  { value: 30, content: 'Source' },
-                                  { value: 0.5, content: 'Middle' },
-                                  { value: -30, content: 'Target' }
-                              ],
-                              defaultValue: 0.5,
-                              label: 'Position'
-                          }
-                      }
-                  }
-              }
-          };
-      }
-  }
-  
-  paper.on('cell:pointerdown', function (cellView) {
-    openInspector(cellView.model);
-  });
+    paper.on('cell:pointerdown', function (cellView) {
+      openInspector(cellView.model);
+    });
 
-  stencil.on('element:drop', function (elementView) {
-      openInspector(elementView.model);
-  });
+    stencil.on('element:drop', function (elementView) {
+        openInspector(elementView.model);
+    });
 
-  paper.on('blank:pointerdown',  () => {
-      closeInspector(); // close inspector if currently open
-  });
+    paper.on('blank:pointerdown',  () => {
+        closeInspector(); // close inspector if currently open
+    });
 
-  openInspector(rect1);
-
+    openInspector(rect1);     //openInspector(rect2);
 
   }
 
