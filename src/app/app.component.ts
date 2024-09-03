@@ -1,7 +1,7 @@
 // angular
-import { AfterViewInit , Component, ElementRef, ViewChild, OnInit } from '@angular/core';
+import { Component, ViewChild, OnInit } from '@angular/core';
 // jointjs/plus
-import { dia, ui, shapes } from '@joint/plus';
+import { dia, ui, shapes, util, format } from '@joint/plus';
 
 @Component({
   selector: 'app-root',
@@ -9,72 +9,47 @@ import { dia, ui, shapes } from '@joint/plus';
   standalone: true,
   styleUrl: './app.component.css'
 })
-export class AppComponent implements OnInit, AfterViewInit  {
-
-  @ViewChild('canvas') canvas: ElementRef;
-
-  private graph: dia.Graph;
-  private paper: dia.Paper;
-  private scroller: ui.PaperScroller;
+export class AppComponent implements OnInit {
 
   public ngOnInit(): void {
 
-    const graph = this.graph = new dia.Graph({}, { cellNamespace: shapes });
-
-    const paper = this.paper = new dia.Paper({
-        model: graph,
-        width: 1000,
-        height: 1000,
-        background: {
-            color: '#F8F9FA',
-        },
-        frozen: true,
-        async: true,
-        sorting: dia.Paper.sorting.APPROX,
-        cellViewNamespace: shapes
+    const graph = new dia.Graph({}, { cellNamespace: shapes });
+    const namespace = shapes;
+    
+    const paper = new dia.Paper({
+      el: document.getElementById('paper'),
+      model: graph,
+      width: 700,
+      height: 500,
+      background: { color: '#F5F5F5' },
+      cellViewNamespace: namespace
     });
 
-    const scroller = this.scroller = new ui.PaperScroller({
-        paper,
-        autoResizePaper: true,
-        cursor: 'grab'
-    });
+    // const paperScroller = new ui.PaperScroller({
+    //   paper: paper,
+    //   scrollWhileDragging: true,
+    // });
+    // paperScroller.render();  
 
-    scroller.render();
+    const rect1 = new shapes.standard.Rectangle();
+    rect1.position(25, 25);
+    rect1.resize(180, 50);
+    
+    const rect2 = new shapes.standard.Rectangle();
+    rect2.position(95, 225);
+    rect2.resize(180, 50);
 
-    const rect = new shapes.standard.Rectangle({
-        position: { x: 25, y: 25 },
-        size: { width: 50, height: 100 },
-        attrs: {
-            label: {
-                text: 'Hello Rectangle 1'
-            }
-        }
-    });
+    rect1.attr('body', { stroke: '#C94A46', rx: 2, ry: 2 });
+    rect2.attr('body', { stroke: '#C94A46', rx: 2, ry: 2 });
 
-    this.graph.addCell(rect);
+    rect1.attr('label', { text: 'Hello', fill: '#353535' });
+    rect2.attr('label', { text: 'World!', fill: '#353535' });
 
-    const rect2 = new shapes.standard.Rectangle({
-      position: { x: 275, y: 175},
-      size: {width: 50, height: 100},
-      attrs: {
-        label: {
-          text: "Hello Rectangle 2"
-        }
-      }
-    });
-
-    this.graph.addCell(rect2);
-
-    const rect3 = new shapes.standard.Rectangle();
-    rect3.position(800, 900);
-    rect3.resize(180, 50);
-    rect3.attr('label', { text: 'Hello Rectangle 3' });
-    rect3.addTo(graph);
-
+    rect1.addTo(graph);
+    rect2.addTo(graph);
 
     const link = new shapes.standard.Link();
-    link.source(rect);
+    link.source(rect1);
     link.target(rect2);
     link.appendLabel({
       attrs: {
@@ -85,55 +60,193 @@ export class AppComponent implements OnInit, AfterViewInit  {
     });
     link.router('orthogonal');
     link.connector('straight', {  cornerType: 'line' });
-    
     link.addTo(graph);
 
+    const stencil = new ui.Stencil({
+      paper: paper,
+      el: document.getElementById('stencil'),
+      width: 170,
+      height: 170,
+      layout: true,
+      dropAnimation: true
+    });
+
+    stencil.render();
+
+    const elements = [
+      {
+          type: 'standard.Rectangle',
+          size: { width: 70, height: 50 },
+          attrs: {
+              body: {
+                  stroke: '#C94A46',
+                  rx: 2,
+                  ry: 2
+              }
+          }
+      },
+      {
+          type: 'standard.Ellipse',
+          size: { width: 70, height: 50 },
+          attrs: {
+              body: {
+                  stroke: '#C94A46',
+              }
+          }
+      },
+      {
+          type: 'standard.Polygon',
+          size: { width: 70, height: 50 },
+          attrs: {
+              body: {
+                  stroke: '#C94A46',
+                  points: 'calc(w/2),0 calc(w),calc(h/2) calc(w/2),calc(h) 0,calc(h/2)'
+              }
+          }
+      },
+      {
+          type: 'standard.Cylinder',
+          size: { width: 70, height: 50 },
+          attrs: {
+              body: {
+                  stroke: '#C94A46',
+              },
+              top: {
+                  fill: '#C94A46',
+                  stroke: '#C94A46'
+              }
+          }
+      }
+    ];
+  
+    stencil.load(elements);
+
+    // create halo
+    function openHalo(cellView: any) {
+      new ui.Halo({ cellView: cellView }).render();
+    }
+
+    paper.on('cell:pointerup', (cellView) => {
+      openHalo(cellView);
+    });
+
+    openHalo(paper.findViewByModel(rect1));
+
+    // create toolbar
+    const toolbar = new ui.Toolbar({
+      el: document.getElementById('toolbar'),
+      tools: [
+          {
+              type: 'button',
+              name: 'json',
+              text: 'Export JSON'
+          },
+          {
+              type: 'button',
+              name: 'svg',
+              text: 'Export SVG'
+          },
+          'separator'
+      ],
+    });
+    toolbar.render();
+
+    toolbar.on('json:pointerclick', () => {
+      const str = JSON.stringify(graph.toJSON());
+      console.log('json:pointerclick json-result: ', str)
+      const bytes = new TextEncoder().encode(str);
+      const blob = new Blob([bytes], { type: 'application/json;charset=utf-8' });
+      util.downloadBlob(blob, 'joint-plus.json');
+    });
+  
+    toolbar.on('svg:pointerclick', () => {
+        format.toSVG(
+            paper,
+            (svg) => {
+                util.downloadDataUri(
+                    `data:image/svg+xml,${encodeURIComponent(svg)}`,
+                    'joint-plus.svg'
+                );
+            },
+            { useComputedStyles: false }
+        );
+    });
+
+    function openInspector(cell: any) {
+      closeInspector(); // close inspector if currently open
+  
+      ui.Inspector.create('#inspector', {
+          cell: cell,
+          inputs: getInspectorConfig(cell)
+      });
   }
+  
+  function closeInspector() {
+      ui.Inspector.close();
+  }
+  
+  function getInspectorConfig(cell: any) {
+      if (cell.isElement()) {
+          return {
+              attrs: {
+                  label: {
+                      text: {
+                          type: 'content-editable',
+                          label: 'Label'
+                      }
+                  }
+              }
+          };
+  
+      } else { // cell.isLink()
+          return {
+              labels: {
+                  type: 'list',
+                  label: 'Labels',
+                  item: {
+                      type: 'object',
+                      properties: {
+                          attrs: {
+                              text: {
+                                  text: {
+                                      type: 'content-editable',
+                                      label: 'Text',
+                                      defaultValue: 'label'
+                                  }
+                              },
+                          },
+                          position: {
+                              type: 'select-box',
+                              options: [
+                                  { value: 30, content: 'Source' },
+                                  { value: 0.5, content: 'Middle' },
+                                  { value: -30, content: 'Target' }
+                              ],
+                              defaultValue: 0.5,
+                              label: 'Position'
+                          }
+                      }
+                  }
+              }
+          };
+      }
+  }
+  
+  paper.on('cell:pointerdown', function (cellView) {
+    openInspector(cellView.model);
+  });
 
-  public ngAfterViewInit(): void {
+  stencil.on('element:drop', function (elementView) {
+      openInspector(elementView.model);
+  });
 
-    const { scroller, paper, canvas } = this;
-    canvas.nativeElement.appendChild(this.scroller.el);
-    scroller.center();
-    paper.unfreeze();
+  paper.on('blank:pointerdown',  () => {
+      closeInspector(); // close inspector if currently open
+  });
+
+  openInspector(rect1);
+
 
   }
-
-  /* 
-    Drawing Library Request Needed
-      Type of support: Company
-      Is there active support: Yes
-      License? 
-      Cost?
-      Advantages/Disadvantages?
-      Serialization and deserialization?
-      Grouping of elements?
-      Limiting the "palette" of elements to use?
-
-    PoC Scope
-      Columns:
-        Supuestos Nivel 1
-        Productos
-        Supuestos Nivel 2
-        Objetivos Especificos
-        Supuestos Nivel 3
-        Objetivo General
-      Boxes
-        Group Box
-        Individual Box
-        Label
-        Configuration: Color, Borders, Etc
-        2 Types: Group vs Individual Style
-      Arrows
-        Source, Target
-        Arrow Style
-        Line Style
-        Arrow Midle Text or Tag
-      Utilities
-        Export graph
-        Import graph
-
-  */
-
 
 }

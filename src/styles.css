@@ -1,7 +1,45 @@
 @import "@joint/plus/joint-plus.css";
 
 body {
-  height: 100vh;
-  box-sizing: border-box;
-  margin: 0;
+  margin: unset;
+}
+
+#paper {
+  margin: 50px 0 0 50px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 170px;
+}
+
+#stencil {
+  position: absolute;
+  top: 0;
+  width: 170px;
+  left: 0;
+  bottom: 0;
+}
+
+#toolbar {
+  position: absolute;
+  top: 15px;
+  right: 200px;
+}
+
+#toolbar .joint-toolbar {
+  padding: 5px;
+}
+
+#inspector {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 170px;
+}
+
+
+.h1 {
+  text-align: center;
 }
